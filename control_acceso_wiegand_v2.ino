@@ -828,7 +828,7 @@ void setup() {
   Serial.begin(9600);
   delay(200);         // dejar que el monitor / gateway termine de abrir el puerto
   Serial.println();   // separa la basura del reset de la primera línea útil
-  DEBUG_PRINTLN(F("https://github.com/huguitor/arduino-control-acceso-wiegand"));
+  DEBUG_PRINTLN(F("https://github.com/huguitor/control-acceso-wiegand-v2"));
 
   uint8_t modoWiegand = WIEGAND_PULLUP ? INPUT_PULLUP : INPUT;
   pinMode(PIN_D0,             modoWiegand);
