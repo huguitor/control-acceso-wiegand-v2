@@ -1,4 +1,4 @@
-// https://github.com/huguitor/arduino-control-acceso-wiegand
+// https://github.com/huguitor/control-acceso-wiegand-v2
 // Control de acceso Wiegand por INTERRUPCIONES — 1 o 2 lectoras
 //   L1: D0 = pin 2,  D1 = pin 3    (UNO o Mega)
 //   L2: D0 = pin 18, D1 = pin 19   (solo Mega)
