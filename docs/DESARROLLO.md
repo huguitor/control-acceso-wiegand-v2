@@ -1,6 +1,7 @@
 # Guía de desarrollo
 
 Notas para seguir trabajando sobre el firmware.
+Leer antes [ARQUITECTURA.md](ARQUITECTURA.md): esta placa no hace nada de red.
 
 ## Entorno
 
@@ -20,7 +21,7 @@ Notas para seguir trabajando sobre el firmware.
 1. **Subir `FW_VERSION` en cada cambio que se cargue a un equipo** (semver: parche =
    corrección, menor = función nueva compatible, mayor = cambia el protocolo o la EEPROM).
 2. Anotar el cambio en `CHANGELOG.md`.
-3. Commit + tag: `git tag v2.3.1 && git push --tags`.
+3. Commit + tag: `git tag vX.Y.Z && git push --tags`.
 4. Si cambia el protocolo serial, actualizar `docs/PROTOCOLO.md` **y** el gateway.
 5. Nada de `delay()` en el `loop`: todo con `millis()`.
 6. Nada de `Serial` ni `EEPROM` dentro de interrupciones o callbacks Wiegand.
@@ -126,7 +127,8 @@ Pines con interrupción en el Mega: 2, 3, 18, 19, 20, 21 (20/21 son I²C).
 ## Pendientes / ideas
 
 - [ ] Gateway: manejar `BOOT` y `STATS`, y agregar comandos MQTT `stats`, `stats_reset` y `version`.
-- [ ] Gateway: subirlo a su propio repo de GitHub.
+- [ ] Gateway ESP8266: subirlo a su propio repo de GitHub (separar claves MQTT a un `config.h` ignorado).
+- [ ] Gateway Ethernet: agregar recepción de comandos (`/cmd` → `CMD:...`) para igualarlo al ESP8266.
 - [ ] Validar UIDs en `CMD:ENROLL` (problema 3).
 - [ ] Hacer el listado non-blocking o subir el baud rate (problema 7; hay que cambiarlo en ambos lados).
 - [ ] Mover las tarjetas maestras a EEPROM o hacerlas configurables por MQTT.

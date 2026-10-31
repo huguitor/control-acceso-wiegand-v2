@@ -22,6 +22,7 @@ gateway ESP8266 → MQTT y acepta comandos remotos (alta, baja, listado de tarje
 | Documento | Para qué |
 |---|---|
 | [docs/MANUAL.md](docs/MANUAL.md) | Manual de instalación y uso: cableado, carga, operación diaria, solución de problemas |
+| [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) | Cómo se divide el sistema: placa de control + gateway de comunicación |
 | [docs/PROTOCOLO.md](docs/PROTOCOLO.md) | Protocolo serial Arduino ↔ gateway (eventos y comandos) |
 | [docs/DESARROLLO.md](docs/DESARROLLO.md) | Arquitectura del código, EEPROM, cómo extenderlo, problemas conocidos y pendientes |
 | [CHANGELOG.md](CHANGELOG.md) | Historial de versiones |
@@ -36,5 +37,9 @@ gateway ESP8266 → MQTT y acepta comandos remotos (alta, baja, listado de tarje
 
 ## Proyectos relacionados
 
-- Gateway ESP8266 → MQTT: `~/Arduino/esp8266_gateway_wiegand_mqtt` (todavía sin repo).
+Esta placa **solo se ocupa del control de acceso**; la comunicación con el broker MQTT
+la hace un gateway aparte (ver [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)):
+
+- Gateway ESP8266 (WiFi): `~/Arduino/esp8266_gateway_wiegand_mqtt` (todavía sin repo).
+- Gateway UNO + Ethernet (cableado): https://github.com/huguitor/uno_mqtt_json_serial
 - Versión anterior (1 lectora, UNO): https://github.com/huguitor/arduino-control-acceso-wiegand

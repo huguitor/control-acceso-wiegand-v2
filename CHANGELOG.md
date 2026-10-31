@@ -2,6 +2,11 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) · Versionado semántico.
 
+## [Sin publicar]
+
+### Documentación
+- `docs/ARQUITECTURA.md`: división placa de control / gateway y comparación de gateways.
+
 ## [2.3.2]
 
 ### Agregado
