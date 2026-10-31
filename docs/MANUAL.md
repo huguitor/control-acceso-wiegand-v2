@@ -1,6 +1,6 @@
 # Manual de instalación y uso — Control de acceso Wiegand v2
 
-FW 2.3.0
+FW 2.3.2
 
 ---
 
@@ -101,7 +101,7 @@ Si la tarjeta tiene impreso "086,37205", eso equivale a 5673301.
 4. Desconectar el gateway de los pines 0/1.
 5. Subir el sketch.
 6. Abrir el Monitor Serie a 9600: debe aparecer
-   `BOOT:L1:FW:2.3.0:WIEGAND:2.0.0:READERS:2:CAP:1000` y `DOOR:L1:CLOSED`.
+   `BOOT:L1:FW:2.3.2:WIEGAND:2.0.0:READERS:1:CAP:200` (UNO, 1 lectora) o `BOOT:L1:FW:2.3.2:WIEGAND:2.0.0:READERS:2:CAP:1000` y `DOOR:L1:CLOSED`.
 7. Reconectar el gateway.
 
 > La primera vez en una placa nueva, la EEPROM se inicializa vacía (solo quedan

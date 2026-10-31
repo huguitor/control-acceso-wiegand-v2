@@ -5,7 +5,7 @@ Wiegand 26 bits, cerradura por relé, pulsador de salida, sensor magnético,
 buzzer, LED y relé de desarme de alarma. Reporta todo por serial a un
 gateway ESP8266 → MQTT y acepta comandos remotos (alta, baja, listado de tarjetas).
 
-**Versión actual:** FW `2.3.0` · Librería Wiegand `2.0.0`
+**Versión actual:** FW `2.3.2` · Librería Wiegand `2.0.0`
 
 ## Características
 

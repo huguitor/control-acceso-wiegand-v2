@@ -2,11 +2,21 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) · Versionado semántico.
 
-## [Sin publicar]
+## [2.3.2]
+
+### Agregado
+- Filtro anti-ruido en las ISR: se ignora un flanco que llega antes de
+  `WIEGAND_MIN_INTERVAL_US` (200 µs) desde el último bit de esa lectora. 0 = desactivado.
+- Clasificación de ruido: tramas con menos de `RUIDO_MAX_BITS` (8) bits se cuentan como
+  `NOISE` y no se envían como `ERROR` (evita tráfico MQTT cuando conmuta la cerradura).
+- `STATS` agrega los campos `FILTERED` y `NOISE`:
+  `STATS:L1:OK:120:ERR:2:INVALID:1:FILTERED:35:NOISE:12`.
+
+### Cambiado
+- `NUM_LECTORAS` por defecto pasa a `1`.
 
 ### Documentación
 - README, manual de instalación y uso, protocolo serial y guía de desarrollo.
-- URL del repo actualizada en el encabezado del sketch y en el mensaje de debug.
 
 ## [2.3.0] — primera versión en este repositorio
 

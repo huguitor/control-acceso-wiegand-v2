@@ -9,11 +9,12 @@
 //   Nota: se usa receivedBit() con interrupciones FALLING (no setPinState con CHANGE)
 
 // ============================================================
-// VERSIÓN — se informa al arrancar como:
-//   BOOT:L1:FW:2.3.0:WIEGAND:2.0.0:READERS:2:CAP:1000
+// VERSIÓN — se informa al arrancar como (ejemplos):
+//   UNO , 1 lectora : BOOT:L1:FW:2.3.2:WIEGAND:2.0.0:READERS:1:CAP:200
+//   Mega, 2 lectoras: BOOT:L1:FW:2.3.2:WIEGAND:2.0.0:READERS:2:CAP:1000
 // Subir FW_VERSION en cada cambio que se cargue al equipo.
 // ============================================================
-#define FW_VERSION      "2.3.0"
+#define FW_VERSION      "2.3.2"
 #define WIEGAND_LIB_VER "2.0.0"
 
 // ============================================================
@@ -21,7 +22,7 @@
 //   1 = solo L1 (pines 2/3) — funciona en UNO y Mega
 //   2 = L1 + L2 (pines 2/3 y 18/19) — requiere Mega
 // ============================================================
-#define NUM_LECTORAS 2
+#define NUM_LECTORAS 1
 
 #if NUM_LECTORAS != 1 && NUM_LECTORAS != 2
   #error "NUM_LECTORAS debe ser 1 o 2"
@@ -135,6 +136,7 @@ struct StatsLectora {
   uint32_t ok;         // tramas válidas (autorizadas o no)
   uint32_t errores;    // errores de trama Wiegand
   uint32_t invalidos;  // UID 0 o 0xFFFFFF filtrados
+  uint32_t ruido;      // tramas cortas (< RUIDO_MAX_BITS): ruido eléctrico
 };
 
 // ============================================================
@@ -240,8 +242,17 @@ const uint32_t UID_INVALIDO_UNOS  = 0xFFFFFF;   // 16777215 (24 bits en 1)
 
 // ESTADÍSTICAS POR LECTORA — solo RAM, nunca EEPROM
 // (struct StatsLectora definido arriba, antes de cualquier función)
-StatsLectora statsL1 = {0, 0, 0};
-StatsLectora statsL2 = {0, 0, 0};
+StatsLectora statsL1 = {0, 0, 0, 0};
+StatsLectora statsL2 = {0, 0, 0, 0};
+
+// CLASIFICACIÓN DE RUIDO: una trama con menos de RUIDO_MAX_BITS bits nunca
+// puede ser una tarjeta (una lectura real tiene 26, y una lectura dañada
+// conserva normalmente 20 o más). Esas tramas se cuentan como NOISE en
+// STATS y NO se envían como ERROR, para no generar tráfico serial/MQTT
+// por cada conmutación de la cerradura. Las tramas >= RUIDO_MAX_BITS que
+// fallan siguen informándose como ERROR: esas sí indican un problema real.
+// 0 = desactivado (todo se informa como ERROR).
+#define RUIDO_MAX_BITS 8
 
 uint32_t bytesANumero(uint8_t* data, uint8_t bits) {
   uint8_t bytes = (bits + 7) / 8;
@@ -256,11 +267,36 @@ uint32_t bytesANumero(uint8_t* data, uint8_t bits) {
 // No se lee el pin: el flag de interrupción del AVR queda latcheado
 // aunque la ISR se demore (p. ej. mientras corre la ISR de la otra
 // lectora), así que el bit no se pierde aunque el pulso ya haya terminado.
-void isrL1_D0() { wiegand.receivedBit(false); }
-void isrL1_D1() { wiegand.receivedBit(true); }
+//
+// FILTRO ANTI-RUIDO: en Wiegand hay al menos ~200 µs entre bits
+// (típico 1–2 ms). Un relé o la cerradura al conmutar generan ráfagas
+// de flancos separados por pocos µs. Se ignora cualquier flanco que
+// llegue antes de WIEGAND_MIN_INTERVAL_US desde el último bit aceptado
+// en ESA lectora (D0 o D1). Cada lectora tiene su propio tiempo, así que
+// no interfiere con lecturas simultáneas. 0 = filtro desactivado.
+// Los flancos descartados se cuentan en STATS como FILTERED.
+#define WIEGAND_MIN_INTERVAL_US 200
+
+volatile unsigned long ultimoBitL1 = 0, ultimoBitL2 = 0;
+volatile uint16_t      filtradosL1 = 0, filtradosL2 = 0;
+
+inline bool flancoValido(volatile unsigned long& ultimo, volatile uint16_t& filtrados) {
+#if WIEGAND_MIN_INTERVAL_US > 0
+  unsigned long ahora = micros();
+  if (ahora - ultimo < WIEGAND_MIN_INTERVAL_US) {
+    if (filtrados < 0xFFFF) filtrados++;
+    return false;
+  }
+  ultimo = ahora;
+#endif
+  return true;
+}
+
+void isrL1_D0() { if (flancoValido(ultimoBitL1, filtradosL1)) wiegand.receivedBit(false); }
+void isrL1_D1() { if (flancoValido(ultimoBitL1, filtradosL1)) wiegand.receivedBit(true); }
 #if NUM_LECTORAS == 2
-void isrL2_D0() { wiegandSalida.receivedBit(false); }
-void isrL2_D1() { wiegandSalida.receivedBit(true); }
+void isrL2_D0() { if (flancoValido(ultimoBitL2, filtradosL2)) wiegandSalida.receivedBit(false); }
+void isrL2_D1() { if (flancoValido(ultimoBitL2, filtradosL2)) wiegandSalida.receivedBit(true); }
 #endif
 
 // Callbacks
@@ -342,7 +378,7 @@ void verificarEEPROM() {
 
 // ============================================================
 // EVENTOS SERIALES → GATEWAY MQTT
-//   BOOT:L1:FW:2.3.0:WIEGAND:2.0.0:READERS:2:CAP:1000   (una vez, al arrancar)
+//   BOOT:L1:FW:2.3.1:WIEGAND:2.0.0:READERS:2:CAP:1000   (una vez, al arrancar)
 //   ACCESS:L1:5033541:1:1
 //   BUTTON:L1:1:1
 //   DOOR:L1:OPEN / CLOSED
@@ -353,7 +389,12 @@ void verificarEEPROM() {
 //   RESET:L1:OK
 //   ERROR:L1:WIEGAND:<tipo>:<bits>      (o L2)  ej. ERROR:L1:WIEGAND:DecodeFailed:26
 //   ERROR:L1:WIEGAND:INVALID_UID:<uid>  (UID 0 o 16777215 filtrado)
-//   STATS:L1:OK:120:ERR:2:INVALID:1     (respuesta a CMD:STATS)
+//   STATS:L1:OK:120:ERR:2:INVALID:1:FILTERED:35:NOISE:12  (respuesta a CMD:STATS)
+//     OK       tramas válidas (autorizadas o no)
+//     ERR      tramas fallidas de RUIDO_MAX_BITS bits o más → problema real
+//     INVALID  UID 0 o 16777215 descartados
+//     FILTERED flancos descartados por el filtro de 200 µs
+//     NOISE    tramas cortas descartadas como ruido (no generan ERROR)
 //   STATS:RESET:OK                      (respuesta a CMD:STATS:RESET)
 // ============================================================
 void enviarEventoAccess(uint32_t tarjeta, bool autorizado, bool aperturaHabilitada, const char* lector) {
@@ -455,8 +496,11 @@ void enviarEventoUidInvalido(const char* lector, uint32_t uid) {
   Serial.println(uid);
 }
 
-// STATS:L1:OK:120:ERR:2:INVALID:1
-void enviarStatsLectora(const char* lector, const StatsLectora& s) {
+// STATS:L1:OK:120:ERR:2:INVALID:1:FILTERED:35:NOISE:12
+void enviarStatsLectora(const char* lector, const StatsLectora& s, volatile uint16_t& filtrados) {
+  noInterrupts();
+  uint16_t f = filtrados;   // 16 bits: leer de forma atómica
+  interrupts();
   Serial.print(F("STATS:"));
   Serial.print(lector);
   Serial.print(F(":OK:"));
@@ -464,19 +508,26 @@ void enviarStatsLectora(const char* lector, const StatsLectora& s) {
   Serial.print(F(":ERR:"));
   Serial.print(s.errores);
   Serial.print(F(":INVALID:"));
-  Serial.println(s.invalidos);
+  Serial.print(s.invalidos);
+  Serial.print(F(":FILTERED:"));
+  Serial.print(f);
+  Serial.print(F(":NOISE:"));
+  Serial.println(s.ruido);
 }
 
 void enviarStats() {
-  enviarStatsLectora("L1", statsL1);
+  enviarStatsLectora("L1", statsL1, filtradosL1);
 #if NUM_LECTORAS == 2
-  enviarStatsLectora("L2", statsL2);
+  enviarStatsLectora("L2", statsL2, filtradosL2);
 #endif
 }
 
 void resetStats() {
-  statsL1 = {0, 0, 0};
-  statsL2 = {0, 0, 0};
+  statsL1 = {0, 0, 0, 0};
+  statsL2 = {0, 0, 0, 0};
+  noInterrupts();
+  filtradosL1 = filtradosL2 = 0;
+  interrupts();
   Serial.println(F("STATS:RESET:OK"));
 }
 
@@ -685,8 +736,18 @@ void atenderLectoras() {
 
   if (p1) atenderTarjeta(c1, "L1", statsL1);
   if (p2) atenderTarjeta(c2, "L2", statsL2);
-  if (e1) { statsL1.errores++; enviarEventoErrorWiegand("L1", t1, b1); }
-  if (e2) { statsL2.errores++; enviarEventoErrorWiegand("L2", t2, b2); }
+  if (e1) atenderError("L1", t1, b1, statsL1);
+  if (e2) atenderError("L2", t2, b2, statsL2);
+}
+
+// Separa ruido (tramas cortas, solo contador) de errores reales (se informan).
+void atenderError(const char* lector, uint8_t tipo, uint8_t bits, StatsLectora& stats) {
+  if (bits < RUIDO_MAX_BITS) {
+    stats.ruido++;
+    return;
+  }
+  stats.errores++;
+  enviarEventoErrorWiegand(lector, tipo, bits);
 }
 
 // Filtra UIDs inválidos antes de la lógica de acceso.

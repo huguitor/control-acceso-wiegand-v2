@@ -10,7 +10,7 @@
 
 | Mensaje | Cuándo | Ejemplo |
 |---|---|---|
-| `BOOT:<id>:FW:<v>:WIEGAND:<v>:READERS:<n>:CAP:<n>` | Al arrancar y con `CMD:VERSION` | `BOOT:L1:FW:2.3.0:WIEGAND:2.0.0:READERS:2:CAP:1000` |
+| `BOOT:<id>:FW:<v>:WIEGAND:<v>:READERS:<n>:CAP:<n>` | Al arrancar y con `CMD:VERSION` | `BOOT:L1:FW:2.3.2:WIEGAND:2.0.0:READERS:2:CAP:1000` |
 | `ACCESS:<L>:<uid>:<autorizado>:<abre>` | Tarjeta leída en modo lectura | `ACCESS:L2:5033541:1:1` |
 | `BUTTON:<id>:1:<abre>` | Pulsador de salida | `BUTTON:L1:1:1` |
 | `DOOR:<id>:OPEN` / `CLOSED` | Cambio del sensor magnético y al arrancar | `DOOR:L1:OPEN` |
@@ -25,7 +25,7 @@
 | `RESET:<id>:OK` | Respuesta a `CMD:RESET` | |
 | `ERROR:<L>:WIEGAND:<tipo>:<bits>` | Trama Wiegand inválida | `ERROR:L1:WIEGAND:DecodeFailed:26` |
 | `ERROR:<L>:WIEGAND:INVALID_UID:<uid>` | UID 0 o 16777215 filtrado | `ERROR:L2:WIEGAND:INVALID_UID:0` |
-| `STATS:<L>:OK:<n>:ERR:<n>:INVALID:<n>` | Respuesta a `CMD:STATS` (una línea por lectora) | `STATS:L1:OK:120:ERR:2:INVALID:1` |
+| `STATS:<L>:OK:<n>:ERR:<n>:INVALID:<n>:FILTERED:<n>:NOISE:<n>` | Respuesta a `CMD:STATS` (una línea por lectora) | `STATS:L1:OK:120:ERR:2:INVALID:1:FILTERED:35:NOISE:12` |
 | `STATS:RESET:OK` | Respuesta a `CMD:STATS:RESET` | |
 
 Notas:
@@ -36,6 +36,12 @@ Notas:
 - Una tarjeta pasada **en modo grabación** no genera `ACCESS`: solo `ENROLL:...`.
 - `<tipo>` de error lo da `Wiegand::DataErrorStr()` de la librería
   (ej. `SizeTooBig`, `SizeUnexpected`, `DecodeFailed`, `Communication`).
+- Las tramas con menos de `RUIDO_MAX_BITS` (8) bits **no generan `ERROR`**: se cuentan
+  como `NOISE` en `STATS` (típicamente ruido de la cerradura o un relé al conmutar).
+- Campos de `STATS` (contadores desde el arranque o el último `CMD:STATS:RESET`):
+  `OK` tramas válidas · `ERR` tramas fallidas de 8 bits o más (problema real) ·
+  `INVALID` UID 0 o 16777215 · `FILTERED` flancos descartados por el filtro de
+  `WIEGAND_MIN_INTERVAL_US` (200 µs; tope 65535) · `NOISE` tramas cortas descartadas.
 
 ## Comandos (Gateway → Arduino)
 
