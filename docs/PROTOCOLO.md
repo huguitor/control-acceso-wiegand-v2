@@ -57,13 +57,19 @@ Notas:
 
 Máximo 79 caracteres por línea; los comandos desconocidos se ignoran sin respuesta.
 
-## Mapeo MQTT (gateway `esp8266_gateway_wiegand_mqtt` 1.1.0)
+## Mapeo MQTT (gateway `esp8266_gateway_wiegand_mqtt` 1.4.0)
 
 - Eventos: `iot/devices/<DEVICE_ID>/event` (JSON).
 - Comandos: `iot/devices/<DEVICE_ID>/cmd` (JSON con `cmd` y `card_uid`).
 - Estado: `iot/devices/<DEVICE_ID>/status` (`online`/`offline`, retenido, LWT).
 - Info: `iot/devices/<DEVICE_ID>/info` (último `boot`, retenido). El gateway manda
   `CMD:VERSION` cada vez que conecta a MQTT para mantenerlo al día.
+- Telemetría: `iot/devices/<DEVICE_ID>/telemetry` cada 60 s (heartbeat):
+  `{"ip":"192.168.0.16","rssi":-61,"uptime":3600,"heap":42000,"gateway_fw":"1.4.0","uno_rx_age":42,"queued":0,"dropped":0}`.
+  `uno_rx_age` = segundos desde la última línea del UNO (-1 = ninguna).
+- Sin conexión, el gateway encola hasta 40 eventos y los reenvía al reconectar con
+  `"delay_s"` (segundos de espera): hora real = hora de recepción − `delay_s`.
+  No se encolan `list`, `stats`, `stats_reset` ni `boot`.
 
 | JSON en `/cmd` | Comando serial |
 |---|---|
@@ -90,4 +96,4 @@ Ejemplos de eventos publicados:
   números sin comillas). Un campo nuevo agregado **al final** llega a MQTT sin cambiar el gateway.
 - `boot` se publica al arrancar la placa **y** como respuesta a `version` (no implica reinicio).
 
-> Gateway 1.1.0 (2026-11-03): traduce todos los mensajes de esta página.
+> Gateway 1.4.0 (2026-11-03): traduce todos los mensajes de esta página.
