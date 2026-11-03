@@ -6,6 +6,9 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) · Versiona
 
 ### Documentación
 - `docs/ARQUITECTURA.md`: división placa de control / gateway y comparación de gateways.
+- `docs/PROTOCOLO.md` y `docs/ARQUITECTURA.md`: gateway ESP8266 1.1.0 (`boot`, `stats`,
+  `error` con detalle, topic `/info`, comandos `stats`, `stats_reset`, `version`) y cableado.
+- `CLAUDE.md`: compilación con `arduino-cli`.
 
 ## [2.3.2]
 

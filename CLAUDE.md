@@ -12,5 +12,6 @@ Firmware Arduino (AVR, UNO/Mega) de control de acceso Wiegand. Todo el código e
 - Subir `FW_VERSION` y anotar en `CHANGELOG.md` en cada cambio de firmware.
 - Sin `delay()` en el loop, sin `Serial`/`EEPROM` en ISRs/callbacks, strings con `F()`.
 - Cambios de layout de EEPROM: nueva firma + migración en `verificarEEPROM()`.
-- No hay `arduino-cli` instalado; la compilación la hace el usuario en el Arduino IDE.
+- Compilar con `arduino-cli` (en `~/.local/bin`): `arduino-cli compile -b arduino:avr:uno .`
+  (también `arduino:avr:mega`). Gateway: `-b esp8266:esp8266:nodemcuv2`.
 - Comentarios y mensajes en español, igual que el código existente.

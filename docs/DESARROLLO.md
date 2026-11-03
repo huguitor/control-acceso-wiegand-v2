@@ -126,8 +126,10 @@ Pines con interrupción en el Mega: 2, 3, 18, 19, 20, 21 (20/21 son I²C).
 
 ## Pendientes / ideas
 
-- [ ] Gateway: manejar `BOOT` y `STATS`, y agregar comandos MQTT `stats`, `stats_reset` y `version`.
-- [ ] Gateway ESP8266: subirlo a su propio repo de GitHub (separar claves MQTT a un `config.h` ignorado).
+- [x] Gateway: manejar `BOOT` y `STATS`, y agregar comandos MQTT `stats`, `stats_reset` y `version` (gateway 1.1.0).
+- [ ] Gateway ESP8266: subirlo a su propio repo de GitHub (ya está en git local con claves en `config.h` ignorado).
+- [ ] Mega: puerto del gateway configurable (`Serial2`, pines 16/17) para dejar el USB libre.
+- [ ] Gateway: cola de eventos en RAM para no perder accesos durante un corte corto de MQTT.
 - [ ] Gateway Ethernet: agregar recepción de comandos (`/cmd` → `CMD:...`) para igualarlo al ESP8266.
 - [ ] Validar UIDs en `CMD:ENROLL` (problema 3).
 - [ ] Hacer el listado non-blocking o subir el baud rate (problema 7; hay que cambiarlo en ambos lados).

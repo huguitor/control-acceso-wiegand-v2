@@ -50,26 +50,35 @@ Reglas:
 | | ESP8266 WiFi | UNO + Ethernet |
 |---|---|---|
 | Código | `~/Arduino/esp8266_gateway_wiegand_mqtt` | https://github.com/huguitor/uno_mqtt_json_serial |
-| Repo | Todavía no | Sí (público) |
+| Repo | Git local (todavía no en GitHub) | Sí (público) |
 | Placa | NodeMCU / ESP-12F | Arduino UNO + shield Ethernet (W5100) |
 | Serial con la placa de control | SoftwareSerial D5 (RX) / D6 (TX) | Serial |
 | Configuración de red | Portal web en modo AP (llave AP/ST en D7), credenciales en LittleFS | MAC e IP del broker en el código |
 | Publica eventos | ✅ | ✅ |
 | Recibe comandos (`enroll`, `delete`, `list`, `reset`) | ✅ | ❌ (solo publica) |
-| `BOOT` y `STATS` | ❌ | ❌ |
+| `BOOT`, `STATS` y comandos `stats`, `stats_reset`, `version` | ✅ (1.1.0) | ❌ |
 
-Topics MQTT (ambos): `iot/devices/<DEVICE_ID>/event`, `/cmd` (solo ESP8266) y `/status`.
+Topics MQTT (ambos): `iot/devices/<DEVICE_ID>/event`, `/cmd` y `/info` (solo ESP8266) y `/status`.
 `DEVICE_ID` por defecto: `lector-acceso-01`.
 
-> Estado relevado el 2026-10-31. Si cambia algún gateway, actualizar esta tabla.
+> Estado relevado el 2026-11-03. Si cambia algún gateway, actualizar esta tabla.
 
 ## Cableado entre módulos
 
 | Placa de control | Gateway |
 |---|---|
-| TX (pin 1) | RX del gateway — **divisor 5 V → 3,3 V si es ESP8266** |
-| RX (pin 0) | TX del gateway |
+| TX (pin 1) | RX del gateway — ESP8266: **D5** con **divisor 5 V → 3,3 V** (1 kΩ serie + 2 kΩ a GND) |
+| RX (pin 0) | TX del gateway — ESP8266: **D6**, directo |
 | GND | GND (**común obligatorio**) |
 
-Los pines 0/1 de la placa de control son los del USB: desconectar el gateway para cargar
-firmware o usar el Monitor Serie.
+Detalle, dibujo del divisor y alimentación en el README del gateway.
+
+Los pines 0/1 de la placa de control son los del USB:
+
+- Para **cargar firmware**, desconectar el TX del gateway → pin 0.
+- El **Monitor Serie** puede quedar abierto para *mirar* lo que manda la placa, pero no
+  para escribir comandos (el USB y el gateway se pisarían en el pin 0). Los comandos van por MQTT.
+- No se puede usar `SoftwareSerial` en la placa de control para liberar el USB: bloquea
+  las interrupciones ~1 ms por byte a 9600 y se pierden bits Wiegand.
+- En el **Mega** sí se puede: pasar el gateway a `Serial2` (TX2 = 16, RX2 = 17) y dejar el
+  USB libre (`Serial1`, pines 18/19, ya está ocupado por la lectora L2). Ver pendientes.

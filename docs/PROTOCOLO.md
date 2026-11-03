@@ -57,11 +57,13 @@ Notas:
 
 Máximo 79 caracteres por línea; los comandos desconocidos se ignoran sin respuesta.
 
-## Mapeo MQTT (gateway `esp8266_gateway_wiegand_mqtt`)
+## Mapeo MQTT (gateway `esp8266_gateway_wiegand_mqtt` 1.1.0)
 
 - Eventos: `iot/devices/<DEVICE_ID>/event` (JSON).
 - Comandos: `iot/devices/<DEVICE_ID>/cmd` (JSON con `cmd` y `card_uid`).
-- Estado: `iot/devices/<DEVICE_ID>/status`.
+- Estado: `iot/devices/<DEVICE_ID>/status` (`online`/`offline`, retenido, LWT).
+- Info: `iot/devices/<DEVICE_ID>/info` (último `boot`, retenido). El gateway manda
+  `CMD:VERSION` cada vez que conecta a MQTT para mantenerlo al día.
 
 | JSON en `/cmd` | Comando serial |
 |---|---|
@@ -69,13 +71,23 @@ Máximo 79 caracteres por línea; los comandos desconocidos se ignoran sin respu
 | `{"cmd":"delete","card_uid":"5033541"}` | `CMD:DELETE:5033541` |
 | `{"cmd":"list"}` | `CMD:LIST` |
 | `{"cmd":"reset"}` | `CMD:RESET` |
+| `{"cmd":"stats"}` | `CMD:STATS` |
+| `{"cmd":"stats_reset"}` | `CMD:STATS:RESET` |
+| `{"cmd":"version"}` | `CMD:VERSION` |
 
-Ejemplo de evento publicado:
+Ejemplos de eventos publicados:
 
 ```json
 {"event":"access","reader":"L1","card_uid":"5033541","authorized":true,"door_opened":true}
+{"event":"boot","reader":"L1","gateway_fw":"1.1.0","fw":"2.3.2","wiegand":"2.0.0","readers":1,"cap":200}
+{"event":"stats","reader":"L1","ok":120,"err":2,"invalid":1,"filtered":35,"noise":12}
+{"event":"stats_reset","result":"OK"}
+{"event":"error","reader":"L1","error":"WIEGAND","type":"DecodeFailed","bits":26}
+{"event":"error","reader":"L2","error":"WIEGAND","type":"INVALID_UID","card_uid":"0"}
 ```
 
-> El gateway (revisado el 2026-10-29) traduce `ACCESS`, `BUTTON`, `DOOR`, `MODE`, `ENROLL`,
-> `DELETE`, `LIST`, `RESET` y `ERROR`. **Todavía no maneja `BOOT` ni `STATS`, y no tiene
-> comandos MQTT para `stats` ni `version`.** Ver pendientes en [DESARROLLO.md](DESARROLLO.md).
+- `boot` y `stats` copian los pares `CLAVE:VALOR` del mensaje serial (clave en minúsculas,
+  números sin comillas). Un campo nuevo agregado **al final** llega a MQTT sin cambiar el gateway.
+- `boot` se publica al arrancar la placa **y** como respuesta a `version` (no implica reinicio).
+
+> Gateway 1.1.0 (2026-11-03): traduce todos los mensajes de esta página.
