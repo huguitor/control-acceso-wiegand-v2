@@ -22,7 +22,7 @@
 //   1 = solo L1 (pines 2/3) — funciona en UNO y Mega
 //   2 = L1 + L2 (pines 2/3 y 18/19) — requiere Mega
 // ============================================================
-#define NUM_LECTORAS 1
+#define NUM_LECTORAS 2
 
 #if NUM_LECTORAS != 1 && NUM_LECTORAS != 2
   #error "NUM_LECTORAS debe ser 1 o 2"
