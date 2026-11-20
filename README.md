@@ -10,7 +10,8 @@ gateway ESP8266 → MQTT y acepta comandos remotos (alta, baja, listado de tarje
 ## Características
 
 - Lectura Wiegand **por interrupciones** (no se pierden bits).
-- 1 lectora (UNO o Mega) o 2 lectoras (solo Mega), se elige con `NUM_LECTORAS`.
+- 1 lectora (UNO o Mega) o 2 lectoras (solo Mega): por defecto 2 en Mega y 1 en UNO.
+- Suspensión y licencia por tiempo con comandos firmados (equipos en cuotas), desde 2.4.0.
 - Hasta **200 tarjetas** (UNO) o **1000 tarjetas** (Mega) en EEPROM + tarjetas fijas en flash.
 - Alta de tarjetas en el equipo con **tarjeta maestra** (modo grabación) o remota por MQTT.
 - Todo *non-blocking*: buzzer, temporizadores y antirrebotes con `millis()`.
@@ -31,7 +32,8 @@ gateway ESP8266 → MQTT y acepta comandos remotos (alta, baja, listado de tarje
 
 1. Instalar en el Arduino IDE la librería **"Yet Another Arduino Wiegand Library"** v2.0.0 (Paulo Costa).
 2. Abrir `control_acceso_wiegand_v2.ino`.
-3. Ajustar `NUM_LECTORAS` (1 o 2), las tarjetas maestras y las tarjetas fijas.
+3. Ajustar las tarjetas maestras y las fijas, y generar la clave del equipo:
+   `python3 tools/firmar_licencia.py generar clave_licencia.h`.
 4. Elegir la placa (**Arduino Mega 2560** si son 2 lectoras) y cargar.
 5. **Desconectar el gateway de los pines 0/1 antes de cargar** y reconectarlo después.
 

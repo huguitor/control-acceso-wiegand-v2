@@ -2,6 +2,45 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) · Versionado semántico.
 
+## [2.4.0] — 2026-11-05
+
+### Agregado
+- **Suspensión y licencia por tiempo de uso**, para equipos vendidos en cuotas:
+  - `CMD:SUSPEND` / `CMD:RESUME`: suspende o rehabilita el equipo sin borrar nada.
+  - `CMD:RENEW:<dias>`: modo cuotas; vence tras `<dias>` días de uso si no se renueva.
+  - `CMD:FREE`: licencia libre (cuotas pagadas), no vence más.
+  - Los cuatro van **firmados** (SipHash-2-4 con clave por equipo en `clave_licencia.h`,
+    fuera de Git) y con número de secuencia creciente: no sirven sin la clave ni se
+    pueden repetir. Tras un fallo de firma se acepta un intento por segundo.
+  - `CMD:LICENSE` (sin firma): `LICENSE:L1:MODE:TERM:STATE:ACTIVE:LEFT:<min>:SEQ:<n>`.
+  - Bloqueado (suspendido o vencido): las tarjetas válidas **no abren ni desarman**
+    (`ACCESS:...:1:0`), la maestra no entra en modo grabación (`MODE:L1:LOCKED`).
+    **El pulsador de salida sigue abriendo siempre.**
+  - Sin reloj: se cuenta tiempo encendido, se guarda cada 15 min rotando 8 celdas de
+    EEPROM, y cada arranque suma 15 min (cortar la luz no estira la licencia).
+  - `BOOT` agrega al final `:LOCK:NONE|SUSPENDED|EXPIRED`.
+- **Reset local**: en modo grabación, mantener el pulsador 10 s borra las tarjetas.
+- `CMD:SUM` → `SUM:L1:COUNT:<n>:HASH:<8 hex>`: suma de control independiente del
+  orden, para detectar diferencias con la plataforma sin listar todo.
+- `CMD:LIST:<desde>:<cantidad>`: listado por páginas (máx. 50). `CMD:LIST` sigue igual.
+- `tools/firmar_licencia.py`: genera la clave del equipo y firma comandos.
+
+### Cambiado
+- **`CMD:RESET` ya no borra**: responde `RESET:L1:DENIED`. El borrado total es solo local.
+- `NUM_LECTORAS` se elige solo según la placa (Mega 2, UNO 1); se puede forzar con
+  `--build-property "build.extra_flags=-DNUM_LECTORAS=1"` sin editar el archivo.
+
+### Corregido
+- `CMD:ENROLL` / `CMD:DELETE` validan el UID (solo dígitos, ≠ 0, < 16777215): antes un
+  texto no numérico grababa la tarjeta `0`. Ahora responden `ENROLL:L1:<texto>:INVALID`.
+
+### Compatibilidad
+- La EEPROM de tarjetas no cambia (misma firma): las tarjetas cargadas se conservan.
+  El bloque de licencia ocupa una zona libre con su propia marca; al actualizar desde
+  2.3.x el equipo queda en licencia libre y sin suspender.
+- Gateways anteriores: siguen funcionando; para `LICENSE`/`AUTH`/`SUM` y los comandos
+  firmados hace falta la versión del gateway que los traduzca.
+
 ## [Sin publicar]
 
 ### Documentación

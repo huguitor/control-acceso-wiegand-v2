@@ -63,6 +63,7 @@ Leer antes [ARQUITECTURA.md](ARQUITECTURA.md): esta placa no hace nada de red.
 |---|---|---|
 | Tarjetas (`uint32_t` c/u) | 0..799 (200) | 0..3999 (1000) |
 | Contador (`int`, 2 bytes) | 800 | 4000 |
+| Licencia (desde 2.4.0) | 804..847 | 4004..4047 |
 | Firma (`uint32_t`) | 1020 = `0xABCD0001` | 4092 = `0xABCD0002` |
 
 - `verificarEEPROM()` al arrancar:
@@ -73,6 +74,10 @@ Leer antes [ARQUITECTURA.md](ARQUITECTURA.md): esta placa no hace nada de red.
 - **Borrar** una tarjeta mueve la última al hueco (máx. 4 bytes escritos). El orden no se conserva.
 - **Reset** solo pone el contador en 0 (no borra celdas: escribir 4 KB lleva ~13 s).
 - Si se cambia el layout: **cambiar la firma** y agregar la migración correspondiente.
+- **Bloque de licencia** (2.4.0): marca propia `0x4C31`; si falta, se inicializa en
+  licencia libre. No depende de la firma de tarjetas, así que actualizar no migra nada.
+  Los minutos de uso rotan entre 8 celdas (vale la mayor): con un guardado cada 15 min
+  cada celda recibe ~12 escrituras por día (~20 años).
 - La EEPROM aguanta ~100.000 escrituras por celda; el contador (dirección fija) es la
   celda más gastada (una escritura por alta/baja). No es problema con uso normal.
 
@@ -89,6 +94,20 @@ Leer antes [ARQUITECTURA.md](ARQUITECTURA.md): esta placa no hace nada de red.
 `StatsLectora` (ok / errores / inválidos) por lectora, **solo en RAM** (se pierden al
 reiniciar). La `struct` está declarada antes de cualquier función a propósito: el IDE de
 Arduino genera prototipos automáticos y fallaría si el tipo se declara después.
+
+### Licencia y comandos firmados (2.4.0)
+
+- Clave por equipo en `clave_licencia.h` (ignorado por Git; plantilla en
+  `clave_licencia.example.h`). Sin ese archivo no compila, a propósito.
+  Generarla con `python3 tools/firmar_licencia.py generar clave_licencia.h`.
+- `procesarComandoLicencia()` corre **antes** del `strtok` de `procesarComando()`
+  porque necesita la línea entera para verificar la firma.
+- Pruebas de banco con el tiempo acelerado (1 "minuto" = 50 ms, 1 día ≈ 72 s):
+  `--build-property "build.extra_flags=-DLICENCIA_MINUTO_MS=50"`. **Nunca** cargar esa
+  compilación en un equipo de cliente.
+- Límite: protege contra quien solo tiene un monitor serie. Quien recompila y carga otro
+  firmware por USB la anula (las tarjetas quedan). Para equipos en cuotas conviene
+  precintar la caja.
 
 ## Cómo agregar cosas
 
@@ -111,8 +130,7 @@ Pines con interrupción en el Mega: 2, 3, 18, 19, 20, 21 (20/21 son I²C).
    `leerSerialEntrante()` consume todo lo que llega por serial antes que el bloque de
    debug del `loop`. Opción: convertirlas en comandos (`CMD:DUMP`).
 2. **Tarjeta maestra de test** (`NUMERO_MAESTRO_3 = 6486910`) está activa: quitarla en producción.
-3. **`CMD:ENROLL:` con un UID no numérico** graba `0` (por `atol`). Validar el UID
-   (≠ 0, ≠ 0xFFFFFF, solo dígitos) antes de grabar.
+3. ~~`CMD:ENROLL:` con un UID no numérico grababa `0`~~ — corregido en 2.4.0 (`parsearUid`).
 4. Las maestras pueden activar el modo grabación desde **cualquiera** de las lectoras,
    incluida L2 (lado de salida/interior).
 5. El **pulsador no desarma la alarma** (la tarjeta sí). Verificar que sea el comportamiento deseado.
@@ -131,7 +149,12 @@ Pines con interrupción en el Mega: 2, 3, 18, 19, 20, 21 (20/21 son I²C).
 - [ ] Mega: puerto del gateway configurable (`Serial2`, pines 16/17) para dejar el USB libre.
 - [x] Gateway: cola de eventos en RAM para no perder accesos durante un corte corto de MQTT (gateway 1.4.0, `delay_s`).
 - [ ] Gateway Ethernet: agregar recepción de comandos (`/cmd` → `CMD:...`) para igualarlo al ESP8266.
-- [ ] Validar UIDs en `CMD:ENROLL` (problema 3).
+- [x] Validar UIDs en `CMD:ENROLL` (problema 3) — 2.4.0.
+- [x] Suspensión / licencia firmada y reset solo local — 2.4.0.
+- [ ] Gateway: traducir `LICENSE`, `AUTH`, `SUM` y pasar comandos firmados.
+- [ ] Plataforma: guardar la clave de cada equipo y firmar/renovar licencias.
+- [ ] Ver si se puede proteger la carga de firmware (sin bootloader + lock bits): hoy
+      quien carga otro firmware por USB anula la licencia.
 - [ ] Hacer el listado non-blocking o subir el baud rate (problema 7; hay que cambiarlo en ambos lados).
 - [ ] Mover las tarjetas maestras a EEPROM o hacerlas configurables por MQTT.
 - [ ] Watchdog (`avr/wdt.h`) para recuperarse de cuelgues.

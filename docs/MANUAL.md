@@ -73,7 +73,8 @@ Todo está al principio de `control_acceso_wiegand_v2.ino`:
 
 | Parámetro | Qué cambiar |
 |---|---|
-| `NUM_LECTORAS` | `1` o `2`. Con 2 la placa tiene que ser Mega (si no, no compila). |
+| `NUM_LECTORAS` | Automático: 2 en Mega, 1 en UNO. Para un Mega con una sola lectora compilar con `-DNUM_LECTORAS=1` (ver §5). |
+| `clave_licencia.h` | **Obligatorio** desde 2.4.0: clave del equipo para suspensión/licencia. Crear con `python3 tools/firmar_licencia.py generar clave_licencia.h` y guardar una copia segura (la plataforma la necesita). |
 | `LECTOR_ID` | Identificador en los mensajes (por defecto `"L1"`). |
 | `DEBUG_SERIAL` | `false` en producción. `true` solo para pruebas **sin** gateway. |
 | `RELAY_INVERTIDO` / `RELE_ALARMA_INVERTIDO` | `true` si el relé se activa con HIGH. |
@@ -134,13 +135,31 @@ Topic de comandos: `iot/devices/<DEVICE_ID>/cmd`
 {"cmd":"enroll","card_uid":"5033541"}
 {"cmd":"delete","card_uid":"5033541"}
 {"cmd":"list"}
-{"cmd":"reset"}
 ```
 
 Los eventos llegan por `iot/devices/<DEVICE_ID>/event`.
 
-> ⚠️ `reset` **borra todas las tarjetas grabadas** (no reinicia el equipo).
-> Las tarjetas fijas y las maestras no se borran.
+> Desde 2.4.0 `reset` **remoto ya no borra** (responde `DENIED`). Ver abajo.
+
+### Borrar todas las tarjetas (solo en el equipo)
+
+1. Pasar la **tarjeta maestra** → el LED parpadea (modo grabación).
+2. **Mantener apretado el pulsador de salida 10 segundos** (la puerta se abre al
+   apretarlo, es normal).
+3. Pitidos de error = tarjetas borradas; el equipo vuelve a modo lectura.
+
+Las tarjetas fijas y la licencia no se borran. Con el equipo suspendido no se puede,
+porque la maestra no entra en modo grabación.
+
+### Suspensión y licencia (equipos en cuotas)
+
+- **Suspendido o vencido**: las tarjetas no abren (pitido de denegado), la maestra no
+  graba. **El pulsador de salida abre siempre.** No se borra ninguna tarjeta.
+- Los comandos (`SUSPEND`, `RESUME`, `RENEW:<días>`, `FREE`) van firmados con la clave
+  del equipo; sin la clave no se pueden mandar. Ver `docs/PROTOCOLO.md`.
+- La licencia cuenta **tiempo encendido** (no hay reloj). Cada corte de luz descuenta
+  15 minutos.
+- Consultar el estado: `CMD:LICENSE` por monitor serie.
 
 ### Capacidad
 
@@ -153,7 +172,9 @@ Los eventos llegan por `iot/devices/<DEVICE_ID>/event`.
 
 | Síntoma | Causa probable / solución |
 |---|---|
-| No compila: "NUM_LECTORAS = 2 requiere Arduino Mega" | Elegir placa Mega o poner `NUM_LECTORAS 1`. |
+| No compila: "NUM_LECTORAS = 2 requiere Arduino Mega" | Se forzó 2 lectoras en un UNO: quitar `-DNUM_LECTORAS=2`. |
+| No compila: "Falta clave_licencia.h" | Generar la clave del equipo (§4). |
+| Las tarjetas no abren, `ACCESS:...:1:0` | Equipo suspendido o licencia vencida: `CMD:LICENSE`. |
 | No compila: falta `Wiegand.h` | Instalar la librería (§5). |
 | Error al subir el sketch | El gateway está conectado a los pines 0/1: desconectarlo. |
 | Llegan `ERROR:L1:WIEGAND:...` | Ruido o cableado: revisar GND común, cable mallado, distancia. Probar `WIEGAND_PULLUP true`. |
@@ -172,5 +193,7 @@ Escribir y enviar con salto de línea:
 
 - `CMD:VERSION` → versión del firmware.
 - `CMD:LIST` → lista de tarjetas.
+- `CMD:SUM` → cantidad y suma de control.
+- `CMD:LICENSE` → estado de la licencia.
 - `CMD:STATS` → lecturas OK, errores e inválidas por lectora (desde el último arranque).
 - `CMD:STATS:RESET` → pone las estadísticas a cero.
